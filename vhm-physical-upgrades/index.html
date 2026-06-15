@@ -90,12 +90,44 @@
   }
   .btn:hover { border-color: var(--gold); color: var(--gold2); }
 
-  .table-wrap {
+  .table-area {
+    position: relative;
     width: 100%; max-width: 980px;
+  }
+
+  .table-wrap {
+    width: 100%;
     overflow-x: auto;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface);
+  }
+
+  /* Recommendation marker — sits in the margin beside the best row */
+  .rec-marker {
+    position: absolute;
+    left: 0; top: 0;
+    transform: translate(-100%, -50%);
+    margin-left: -10px;
+    display: none;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .rec-marker.show { display: flex; }
+  .rec-marker .rec-text {
+    font-size: 0.62rem; letter-spacing: 0.08em; font-weight: 700;
+    text-transform: uppercase; color: var(--green);
+  }
+  .rec-marker .rec-arrow { color: var(--green); font-size: 0.95rem; line-height: 1; }
+
+  tbody tr.best-row td:first-child { box-shadow: inset 3px 0 0 var(--green); }
+
+  /* Below the floating marker's breathing room — show it inline instead */
+  @media (max-width: 1119px) {
+    .rec-marker { display: none !important; }
+    tbody tr.best-row .slot::after { content: ' ★'; color: var(--green); font-size: 0.85em; }
   }
 
   table { border-collapse: collapse; width: 100%; min-width: 760px; }
@@ -161,16 +193,6 @@
   tr.done input.cell, tr.done select.cell { opacity: 0.45; }
 
   .cpm { font-weight: 600; font-variant-numeric: tabular-nums; }
-  .pill {
-    display: inline-block;
-    font-size: 0.68rem;
-    padding: 1px 7px;
-    border-radius: 10px;
-    letter-spacing: 0.04em;
-    border: 1px solid var(--border-dim);
-    color: var(--muted);
-  }
-  .pill.best { color: var(--green); border-color: var(--green); }
 
   tfoot td {
     padding: 11px 10px;
@@ -241,7 +263,12 @@
   <button class="btn" onclick="resetAll()">↺ Reset</button>
 </div>
 
-<div class="table-wrap">
+<div class="table-area" id="table-area">
+  <div class="rec-marker" id="rec-marker">
+    <span class="rec-text">Best</span>
+    <span class="rec-arrow">▸</span>
+  </div>
+  <div class="table-wrap">
   <table>
     <thead>
       <tr>
@@ -258,11 +285,13 @@
     <tbody id="rows"></tbody>
     <tfoot id="foot"></tfoot>
   </table>
+  </div>
 </div>
 
 <div class="legend">
   <span><span class="swatch" style="background:var(--green)"></span>Cheaper per max (do first)</span>
   <span><span class="swatch" style="background:var(--red)"></span>Pricier per max (do last)</span>
+  <span><span style="color:var(--green);font-weight:700">Best ▸</span> marks the lowest cost per max — the most efficient upgrade to do next.</span>
   <span>“Cost / Max” = cost ÷ average damage gained — lower is more efficient.</span>
 </div>
 
@@ -347,7 +376,10 @@ function render() {
   const computed = rows.map(calc);
   const activeCpm = computed.filter(c => c.costPerMax != null).map(c => c.costPerMax);
   const lo = Math.min(...activeCpm), hi = Math.max(...activeCpm);
-  const bestCpm = activeCpm.length ? lo : null;
+  let bestIndex = null, bestCpm = Infinity;
+  computed.forEach((c, i) => {
+    if (c.costPerMax != null && c.costPerMax < bestCpm) { bestCpm = c.costPerMax; bestIndex = i; }
+  });
 
   const optionsHtml = ENCHANTS.map(e =>
     `<option value="${e.name}">${e.name} (${e.avg})</option>`).join('');
@@ -356,16 +388,16 @@ function render() {
     const c = computed[i];
     const cpmTxt = c.costPerMax == null ? '—' : c.costPerMax.toFixed(2);
     const color = cpmColor(c.costPerMax, lo, hi);
-    const isBest = c.costPerMax != null && c.costPerMax === bestCpm;
+    const isBest = i === bestIndex;
     return `
-<tr class="${r.finished ? 'done' : ''}">
+<tr class="${r.finished ? 'done' : ''}${isBest ? ' best-row' : ''}">
   <td class="ctr"><input type="checkbox" ${r.finished ? 'checked' : ''} onchange="setField(${i},'finished',this.checked)"></td>
   <td class="slot">${r.slot}</td>
   <td class="num"><input class="cell" type="number" min="0" step="0.5" value="${r.currentMax}" onchange="setField(${i},'currentMax',this.value)"></td>
   <td><select class="cell" onchange="setField(${i},'replacement',this.value)">${optionsHtml.replace(`value="${r.replacement}"`, `value="${r.replacement}" selected`)}</select></td>
   <td class="num"><input class="cell" type="number" min="0" step="1" value="${r.cost}" onchange="setField(${i},'cost',this.value)"></td>
   <td class="num">${r.finished ? '—' : c.increase.toFixed(1)}</td>
-  <td class="num"><span class="cpm" style="color:${color}">${cpmTxt}</span> ${isBest ? '<span class="pill best">best</span>' : ''}</td>
+  <td class="num"><span class="cpm" style="color:${color}">${cpmTxt}</span></td>
   <td class="num">${r.finished ? '—' : c.avgCost.toFixed(0)}</td>
 </tr>`;
   }).join('');
@@ -387,7 +419,24 @@ function render() {
   <td class="num">${overall ? overall.toFixed(2) : '—'}</td>
   <td class="num">${totCost.toFixed(0)}</td>
 </tr>`;
+
+  lastBestIndex = bestIndex;
+  positionRecMarker();
 }
+
+// Align the floating "Best ▸" marker to the vertical center of the best row.
+let lastBestIndex = null;
+function positionRecMarker() {
+  const marker = document.getElementById('rec-marker');
+  const area = document.getElementById('table-area');
+  const tr = lastBestIndex == null ? null : document.querySelectorAll('#rows tr')[lastBestIndex];
+  if (!tr) { marker.classList.remove('show'); return; }
+  const trRect = tr.getBoundingClientRect();
+  const areaRect = area.getBoundingClientRect();
+  marker.style.top = (trRect.top - areaRect.top + trRect.height / 2) + 'px';
+  marker.classList.add('show');
+}
+window.addEventListener('resize', positionRecMarker);
 
 function setField(i, field, value) {
   if (field === 'currentMax' || field === 'cost') value = Number(value) || 0;

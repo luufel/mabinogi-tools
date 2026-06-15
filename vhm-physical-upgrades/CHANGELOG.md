@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.0.1 — 2026-06-15
+- Moved the "best value" recommendation out of the Cost / Max cell into a marker beside the row, so the numbers stay aligned on their column.
+
 ## v1.0.0 — 2026-06-15
 - Initial release of the GB VHM Physical Damage Upgrades planner.
 - Per-slot table with editable Current Max, VHM Replacement enchant, and VHM Cost.
