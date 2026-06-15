@@ -618,23 +618,32 @@ function calc() {
 }
 </script>
 
-<details class="changelog">
+<details class="changelog" id="changelog">
   <summary>Changelog</summary>
-  <div class="changelog-body">
-    <div class="cl-entry">
-      <div class="cl-header">
-        <span class="cl-version">v1.0</span>
-        <span class="cl-date">2026-06-15</span>
-      </div>
-      <ul>
-        <li>Initial release — compare No Coupon vs 10%, 20%, 30%, and 100% sales tax reduction coupons</li>
-        <li>VIP toggle reduces base tax from 5% to 4%</li>
-        <li>Highlights the cheapest option automatically</li>
-        <li><span>Player split</span> — calculates per-player share and floored 10,000 g increments</li>
-      </ul>
-    </div>
-  </div>
+  <div class="changelog-body" id="changelog-body"></div>
 </details>
+<script>
+fetch('./CHANGELOG.md')
+  .then(r => r.text())
+  .then(md => {
+    const body = document.getElementById('changelog-body');
+    const entries = md.split(/^## /m).slice(1);
+    body.innerHTML = entries.map(entry => {
+      const lines = entry.trim().split('\n');
+      const header = lines[0].match(/^(v[\d.]+)\s*[—-]\s*(.+)$/);
+      if (!header) return '';
+      const items = lines.slice(1).filter(l => l.trim().startsWith('-'))
+        .map(l => `<li>${l.replace(/^-\s*/, '')}</li>`).join('');
+      return `<div class="cl-entry">
+  <div class="cl-header">
+    <span class="cl-version">${header[1]}</span>
+    <span class="cl-date">${header[2].trim()}</span>
+  </div>
+  <ul>${items}</ul>
+</div>`;
+    }).join('');
+  });
+</script>
 
 </body>
 </html>

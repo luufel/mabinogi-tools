@@ -1,5 +1,17 @@
 # Barter Checklist Changelog
 
+## v1.5 — 2026-06-15
+- Switch to 4-column grid on desktop, 1-column on mobile
+- Add viewport meta tag so mobile browsers respect screen width
+
+## v1.4 — 2026-06-15
+- Added individual material checkboxes — tick each ingredient separately; trade auto-checks when all materials are done
+- Clicking a trade row quick-toggles all materials at once
+- Added collapsible Materials divider per trade to show/hide ingredients
+- Full-width clickable material rows with thin dividers between them
+- Clicking a location header (e.g. Karu Forest) toggles all trades and materials in that location
+- Fixed recipe tooltip clipping caused by overflow on material list container
+
 ## v1.3 — 2026-06-15
 - Fixed Shrimp Taming Bait recipe tooltip to account for yield of 10 per craft
 - Recipe tooltip ingredient quantities now scale by barter trade amount

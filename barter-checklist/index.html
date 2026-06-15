@@ -742,64 +742,32 @@ function render() {
 render();
 </script>
 
-<details class="changelog">
+<details class="changelog" id="changelog">
   <summary>Changelog</summary>
-  <div class="changelog-body">
-    <div class="cl-entry">
-      <div class="cl-header">
-        <span class="cl-version">v1.4</span>
-        <span class="cl-date">2026-06-15</span>
-      </div>
-      <ul>
-        <li>Added <span>individual material checkboxes</span> — tick each ingredient separately; trade auto-checks when all materials are done</li>
-        <li>Added collapsible <span>Materials</span> divider per trade row to show/hide ingredients</li>
-        <li>Material rows are now <span>full-width clickable</span> with thin dividers between them</li>
-        <li>Clicking a <span>location header</span> (e.g. Karu Forest) toggles all trades and materials in that location</li>
-        <li>Fixed recipe tooltip clipping caused by overflow on material list container</li>
-      </ul>
-    </div>
-    <div class="cl-entry">
-      <div class="cl-header">
-        <span class="cl-version">v1.3</span>
-        <span class="cl-date">2026-06-15</span>
-      </div>
-      <ul>
-        <li>Fixed <span>Shrimp Taming Bait</span> recipe tooltip to account for yield of 10 per craft</li>
-        <li>Recipe tooltip ingredient quantities now scale by barter trade amount</li>
-      </ul>
-    </div>
-    <div class="cl-entry">
-      <div class="cl-header">
-        <span class="cl-version">v1.2</span>
-        <span class="cl-date">2026-06-15</span>
-      </div>
-      <ul>
-        <li>Added <span>recipe tooltips</span> on material hover showing required ingredients</li>
-        <li>Fixed tooltip clipping; tooltips now position below the material label</li>
-      </ul>
-    </div>
-    <div class="cl-entry">
-      <div class="cl-header">
-        <span class="cl-version">v1.1</span>
-        <span class="cl-date">2026-06-15</span>
-      </div>
-      <ul>
-        <li>Location sections arranged in <span>2×2 grid</span> on desktop, collapses to 1 column on mobile</li>
-      </ul>
-    </div>
-    <div class="cl-entry">
-      <div class="cl-header">
-        <span class="cl-version">v1.0</span>
-        <span class="cl-date">2026-06-15</span>
-      </div>
-      <ul>
-        <li>Initial release — weekly barter trade tracker for Karu Forest, Oasis, Calida, and Pera</li>
-        <li>Checkbox UI per trade; currency label corrected to Ducats</li>
-        <li>Auto-resets on weekly rollover via localStorage</li>
-      </ul>
-    </div>
-  </div>
+  <div class="changelog-body" id="changelog-body"></div>
 </details>
+<script>
+fetch('./CHANGELOG.md')
+  .then(r => r.text())
+  .then(md => {
+    const body = document.getElementById('changelog-body');
+    const entries = md.split(/^## /m).slice(1);
+    body.innerHTML = entries.map(entry => {
+      const lines = entry.trim().split('\n');
+      const header = lines[0].match(/^(v[\d.]+)\s*[—-]\s*(.+)$/);
+      if (!header) return '';
+      const items = lines.slice(1).filter(l => l.trim().startsWith('-'))
+        .map(l => `<li>${l.replace(/^-\s*/, '')}</li>`).join('');
+      return `<div class="cl-entry">
+  <div class="cl-header">
+    <span class="cl-version">${header[1]}</span>
+    <span class="cl-date">${header[2].trim()}</span>
+  </div>
+  <ul>${items}</ul>
+</div>`;
+    }).join('');
+  });
+</script>
 
 </body>
 </html>
