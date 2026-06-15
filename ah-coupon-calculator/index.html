@@ -38,6 +38,94 @@
   /* ── Header ── */
   header { text-align: center; margin-bottom: 28px; }
 
+  .back-btn {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.8em;
+    font-family: Arial, sans-serif;
+    color: var(--text-dim);
+    text-decoration: none;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 11px;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, border-color 0.15s;
+    z-index: 100;
+  }
+  .back-btn:hover { color: var(--gold-light); border-color: var(--gold); }
+
+  .changelog {
+    width: 100%;
+    max-width: 500px;
+    margin-top: 32px;
+    border: 1px solid var(--border-dim);
+    border-radius: 6px;
+    background: var(--surface);
+    font-family: Arial, sans-serif;
+  }
+
+  .changelog summary {
+    cursor: pointer;
+    padding: 10px 16px;
+    font-size: 0.8em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    user-select: none;
+    list-style: none;
+  }
+  .changelog summary::-webkit-details-marker { display: none; }
+  .changelog summary::before { content: '▸  '; }
+  details.changelog[open] summary::before { content: '▾  '; }
+  .changelog summary:hover { color: var(--gold-light); }
+
+  .changelog-body {
+    border-top: 1px solid var(--border-dim);
+    padding: 14px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .cl-entry { display: flex; flex-direction: column; gap: 4px; }
+
+  .cl-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .cl-version {
+    font-size: 0.85em;
+    font-weight: bold;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+  }
+
+  .cl-date {
+    font-size: 0.75em;
+    color: var(--text-dim);
+  }
+
+  .cl-entry ul {
+    margin: 0;
+    padding-left: 1.2em;
+    list-style: disc;
+  }
+
+  .cl-entry li {
+    font-size: 0.8em;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .cl-entry li span { color: var(--text); }
+
   header h1 {
     color: var(--gold-light);
     font-size: 1.75em;
@@ -294,6 +382,8 @@
 </head>
 <body>
 
+<a class="back-btn" href="../">‹ All Tools</a>
+
 <header>
   <h1>AH Coupon Calculator</h1>
   <p>MABINOGI · AUCTION HOUSE · TAX OPTIMIZER</p>
@@ -527,5 +617,24 @@ function calc() {
   resultsEl.innerHTML = html;
 }
 </script>
+
+<details class="changelog">
+  <summary>Changelog</summary>
+  <div class="changelog-body">
+    <div class="cl-entry">
+      <div class="cl-header">
+        <span class="cl-version">v1.0</span>
+        <span class="cl-date">2026-06-15</span>
+      </div>
+      <ul>
+        <li>Initial release — compare No Coupon vs 10%, 20%, 30%, and 100% sales tax reduction coupons</li>
+        <li>VIP toggle reduces base tax from 5% to 4%</li>
+        <li>Highlights the cheapest option automatically</li>
+        <li><span>Player split</span> — calculates per-player share and floored 10,000 g increments</li>
+      </ul>
+    </div>
+  </div>
+</details>
+
 </body>
 </html>
