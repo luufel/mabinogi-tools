@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mabinogi AH Coupon Calculator</title>
+<style>
+  :root {
+    --bg:          #0f0b06;
+    --surface:     #1e1509;
+    --surface2:    #2c1f0e;
+    --border:      #5a3e18;
+    --border-dim:  #3a2810;
+    --gold:        #c8960e;
+    --gold-light:  #e8c050;
+    --gold-glow:   rgba(200,150,14,0.35);
+    --text:        #ddd0a8;
+    --text-dim:    #7a6a48;
+    --green:       #4a9e4a;
+    --green-bg:    #0d1f0d;
+    --green-border:#2d5e2d;
+    --red:         #a03030;
+    --input-bg:    #0a0703;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Georgia, 'Times New Roman', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 48px;
+  }
+
+  /* ── Header ── */
+  header { text-align: center; margin-bottom: 28px; }
+
+  header h1 {
+    color: var(--gold-light);
+    font-size: 1.75em;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 24px var(--gold-glow);
+    margin-bottom: 4px;
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 0.8em;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 20px;
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    color: var(--gold);
+    font-size: 0.8em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-dim);
+  }
+
+  /* ── Fields ── */
+  .field {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  .field label {
+    flex: 1;
+    font-size: 0.9em;
+    color: var(--text);
+    cursor: default;
+  }
+
+  .field .pct-badge {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border-dim);
+    border-radius: 3px;
+    font-size: 0.72em;
+    color: var(--gold);
+    padding: 1px 5px;
+    margin-right: 6px;
+    letter-spacing: 0.04em;
+    min-width: 30px;
+    text-align: center;
+  }
+
+  .field input[type="text"] {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--gold-light);
+    font-family: inherit;
+    font-size: 0.9em;
+    padding: 6px 8px;
+    width: 160px;
+    text-align: right;
+  }
+
+  .field input[type="text"]:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 6px var(--gold-glow);
+  }
+
+  .field .unit {
+    color: var(--text-dim);
+    font-size: 0.8em;
+    margin-left: 5px;
+    min-width: 14px;
+  }
+
+  /* ── VIP toggle ── */
+  .vip-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-dim);
+  }
+
+  .toggle-wrap { position: relative; display: inline-block; width: 38px; height: 20px; }
+
+  .toggle-wrap input { display: none; }
+
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+
+  .toggle-wrap input:checked ~ .toggle-track { background: #2a4a1a; border-color: var(--green); }
+  .toggle-wrap input:checked ~ .toggle-track .toggle-thumb {
+    transform: translateX(18px);
+    background: var(--green);
+  }
+
+  .vip-label { font-size: 0.9em; color: var(--text); cursor: pointer; }
+  .vip-desc  { font-size: 0.78em; color: var(--text-dim); }
+
+  /* ── Results ── */
+  #results { width: 100%; max-width: 500px; }
+
+  .placeholder {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.85em;
+    padding: 30px 0;
+  }
+
+  .results-title {
+    color: var(--gold);
+    font-size: 0.8em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .result-row {
+    background: var(--surface);
+    border: 1px solid var(--border-dim);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 3px 10px;
+    transition: border-color 0.15s;
+  }
+
+  .result-row.best {
+    background: var(--green-bg);
+    border-color: var(--green-border);
+  }
+
+  .result-row .row-name {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 0.92em;
+    color: var(--gold-light);
+  }
+
+  .result-row .badge {
+    grid-column: 2;
+    grid-row: 1;
+    background: var(--green);
+    color: #fff;
+    font-size: 0.67em;
+    letter-spacing: 0.07em;
+    font-family: Arial, sans-serif;
+    padding: 2px 7px;
+    border-radius: 3px;
+    align-self: center;
+    text-transform: uppercase;
+  }
+
+  .result-row .breakdown {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 0.78em;
+    color: var(--text-dim);
+    font-family: Arial, sans-serif;
+  }
+
+  .result-row .total-line {
+    grid-column: 1;
+    grid-row: 3;
+    font-size: 0.9em;
+    color: var(--text);
+    margin-top: 3px;
+  }
+
+  .result-row .total-line strong { color: var(--gold-light); }
+
+  .result-row .savings {
+    grid-column: 2;
+    grid-row: 3;
+    font-size: 0.78em;
+    text-align: right;
+    align-self: end;
+    font-family: Arial, sans-serif;
+  }
+
+  .savings.pos  { color: var(--green); }
+  .savings.neg  { color: var(--red); }
+  .savings.zero { color: var(--text-dim); }
+
+  .result-row .net-received {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    font-size: 0.9em;
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-dim);
+  }
+
+  .result-row .net-received strong { color: var(--gold-light); font-size: 1.05em; }
+
+  .result-row .per-player {
+    grid-column: 1 / -1;
+    grid-row: 5;
+    font-size: 0.82em;
+    color: var(--gold);
+    font-family: Arial, sans-serif;
+    margin-top: 3px;
+    padding-top: 5px;
+    border-top: 1px solid var(--border-dim);
+  }
+
+  .result-row .per-player strong { color: var(--gold-light); }
+
+  .result-row.incomplete { opacity: 0.55; }
+  .result-row.incomplete .row-name::after {
+    content: ' (no price set)';
+    font-size: 0.78em;
+    color: var(--text-dim);
+    font-family: Arial, sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AH Coupon Calculator</h1>
+  <p>MABINOGI · AUCTION HOUSE · TAX OPTIMIZER</p>
+</header>
+
+<!-- Coupon prices -->
+<div class="card">
+  <div class="card-title">Coupon Prices</div>
+
+  <div class="field">
+    <label><span class="pct-badge">10%</span> Sales Tax Reduction</label>
+    <input type="text" inputmode="numeric" id="c10" placeholder="—" oninput="fmtInput(this);calc()">
+    <span class="unit">g</span>
+  </div>
+
+  <div class="field">
+    <label><span class="pct-badge">20%</span> Sales Tax Reduction</label>
+    <input type="text" inputmode="numeric" id="c20" placeholder="—" oninput="fmtInput(this);calc()">
+    <span class="unit">g</span>
+  </div>
+
+  <div class="field">
+    <label><span class="pct-badge">30%</span> Sales Tax Reduction</label>
+    <input type="text" inputmode="numeric" id="c30" placeholder="—" oninput="fmtInput(this);calc()">
+    <span class="unit">g</span>
+  </div>
+
+  <div class="field">
+    <label><span class="pct-badge">100%</span> Sales Tax Reduction</label>
+    <input type="text" inputmode="numeric" id="c100" placeholder="—" oninput="fmtInput(this);calc()">
+    <span class="unit">g</span>
+  </div>
+</div>
+
+<!-- Item & VIP -->
+<div class="card">
+  <div class="card-title">Item &amp; Settings</div>
+
+  <div class="field">
+    <label>Item Sell Price</label>
+    <input type="text" inputmode="numeric" id="price" placeholder="0" oninput="fmtInput(this);calc()">
+    <span class="unit">g</span>
+  </div>
+
+  <div class="vip-row">
+    <label class="toggle-wrap" for="vip">
+      <input type="checkbox" id="vip" checked onchange="calc()">
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    </label>
+    <label class="vip-label" for="vip">VIP Active</label>
+    <span class="vip-desc">— reduces base tax 5% → 4%</span>
+  </div>
+
+  <div class="field" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-dim);">
+    <label>Total players</label>
+    <input type="text" inputmode="numeric" id="split" placeholder="1" oninput="fmtInput(this);calc()">
+    <span class="unit" style="min-width:14px;"></span>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="results">
+  <div class="placeholder">Enter coupon prices and an item sell price to compare options.</div>
+</div>
+
+<script>
+const fmt = n => Math.round(n).toLocaleString('en-US');
+
+function fmtInput(el) {
+  const digits = el.value.replace(/[^0-9]/g, '');
+  if (digits === '') { el.value = ''; return; }
+  const num = parseInt(digits, 10);
+  const formatted = num.toLocaleString('en-US');
+  // Preserve caret position relative to end so typing mid-string stays stable
+  const distFromEnd = el.value.length - el.selectionEnd;
+  el.value = formatted;
+  const newPos = formatted.length - distFromEnd;
+  el.setSelectionRange(newPos, newPos);
+}
+
+function val(id) {
+  const raw = document.getElementById(id).value.replace(/,/g, '');
+  const v = parseFloat(raw);
+  return isNaN(v) ? null : v;
+}
+
+function calc() {
+  const price = val('price');
+  const c10   = val('c10');
+  const c20   = val('c20');
+  const c30   = val('c30');
+  const c100  = val('c100');
+  const vip   = document.getElementById('vip').checked;
+  const numPlayers = Math.max(1, Math.floor(val('split') ?? 1));
+
+  const resultsEl = document.getElementById('results');
+
+  if (!price) {
+    resultsEl.innerHTML = '<div class="placeholder">Enter coupon prices and an item sell price to compare options.</div>';
+    return;
+  }
+
+  const base      = vip ? 0.04 : 0.05;
+  const baseLabel = vip ? '4%' : '5%';
+
+  const options = [];
+
+  // No coupon (always present)
+  const taxBase = price * base;
+  options.push({
+    name:      'No Coupon',
+    taxPaid:   taxBase,
+    cpnCost:   0,
+    total:     taxBase,
+    breakdown: `Tax: ${fmt(taxBase)} g  (${baseLabel} of ${fmt(price)} g)`,
+  });
+
+  if (c10 !== null) {
+    const tax   = price * base * 0.90;
+    const total = tax + c10;
+    options.push({
+      name:      '10% Reduction Coupon',
+      taxPaid:   tax,
+      cpnCost:   c10,
+      total,
+      breakdown: `Tax: ${fmt(tax)} g  +  Coupon: ${fmt(c10)} g`,
+    });
+  }
+
+  if (c20 !== null) {
+    const tax   = price * base * 0.80;
+    const total = tax + c20;
+    options.push({
+      name:      '20% Reduction Coupon',
+      taxPaid:   tax,
+      cpnCost:   c20,
+      total,
+      breakdown: `Tax: ${fmt(tax)} g  +  Coupon: ${fmt(c20)} g`,
+    });
+  }
+
+  {
+    const tax   = price * base * 0.70;
+    const total = c30 !== null ? tax + c30 : null;
+    options.push({
+      name:       '30% Reduction Coupon',
+      taxPaid:    tax,
+      cpnCost:    c30,
+      total,
+      incomplete: c30 === null,
+      breakdown:  c30 !== null
+        ? `Tax: ${fmt(tax)} g  +  Coupon: ${fmt(c30)} g`
+        : `Tax: ${fmt(tax)} g  +  Coupon: —`,
+    });
+  }
+
+  if (c100 !== null) {
+    options.push({
+      name:      '100% Reduction Coupon',
+      taxPaid:   0,
+      cpnCost:   c100,
+      total:     c100,
+      breakdown: `Tax: 0 g  +  Coupon: ${fmt(c100)} g`,
+    });
+  }
+
+  const baseline = options[0].total;
+  const minTotal = Math.min(...options.filter(o => !o.incomplete).map(o => o.total));
+
+  let html = '<div class="results-title">Comparison</div>';
+
+  for (const opt of options) {
+    const isBest  = !opt.incomplete && opt.total === minTotal;
+    const classes = ['result-row', isBest && 'best', opt.incomplete && 'incomplete'].filter(Boolean).join(' ');
+
+    const pp = n => numPlayers > 1
+      ? `<br><span style="opacity:0.7">(${fmt(n / numPlayers)} g per person)</span>`
+      : '';
+
+    let totalLine, savLabel, savClass;
+    if (opt.incomplete) {
+      totalLine = `Tax only: <strong>${fmt(opt.taxPaid)} g</strong>`;
+      const taxSave = baseline - opt.taxPaid;
+      savClass = taxSave > 0 ? 'pos' : 'zero';
+      savLabel = taxSave > 0 ? `Tax saves ${fmt(taxSave)} g${pp(taxSave)}` : 'Baseline';
+    } else {
+      totalLine = `Total cost: <strong>${fmt(opt.total)} g</strong>`;
+      const savings = baseline - opt.total;
+      savClass = savings > 0 ? 'pos' : savings < 0 ? 'neg' : 'zero';
+      if (savings > 0)       savLabel = `Save ${fmt(savings)} g${pp(savings)}`;
+      else if (savings < 0)  savLabel = `${fmt(-savings)} g more${pp(-savings)}`;
+      else                   savLabel = 'Baseline';
+    }
+
+    const netReceived = opt.incomplete
+      ? price - opt.taxPaid
+      : price - opt.taxPaid - (opt.cpnCost ?? 0);
+    const netLabel = numPlayers > 1 ? 'Net to split' : 'You receive';
+    const netNote  = opt.incomplete ? ' <span style="color:var(--text-dim);font-size:0.85em">(coupon excl.)</span>' : '';
+    const netReceivedHtml = `<span class="net-received">${netLabel}: <strong>${fmt(netReceived)} g</strong>${netNote}</span>`;
+
+    let perPlayerHtml = '';
+    if (numPlayers > 1) {
+      const cpn = opt.incomplete ? 0 : (opt.cpnCost ?? 0);
+      const net = price - opt.taxPaid - cpn;
+      const flooredShare = Math.floor(net / numPlayers / 10000) * 10000;
+      const remainder = Math.round(net - flooredShare * numPlayers);
+      const cpnPart = cpn > 0
+        ? ` − ${fmt(cpn)} coupon`
+        : opt.incomplete ? ' − ? coupon' : '';
+      const incNote = opt.incomplete ? ' <span style="color:var(--text-dim)">(coupon excl.)</span>' : '';
+      const calcLine = `(${fmt(price)} − ${fmt(Math.round(opt.taxPaid))} tax${cpnPart}) ÷ ${numPlayers}${incNote}`;
+      const remLine = remainder > 0
+        ? `<br><span style="color:var(--text-dim);font-size:0.88em">Others (×${numPlayers - 1}): ${fmt(flooredShare)} g each  ·  +${fmt(remainder)} g stays with you</span>`
+        : `<br><span style="color:var(--text-dim);font-size:0.88em">Others (×${numPlayers - 1}): ${fmt(flooredShare)} g each</span>`;
+      perPlayerHtml = `<span class="per-player">Your share: ${calcLine} = <strong>${fmt(flooredShare)} g</strong>${remLine}</span>`;
+    }
+
+    html += `
+<div class="${classes}">
+  <span class="row-name">${opt.name}</span>
+  ${isBest ? '<span class="badge">Best</span>' : ''}
+  <span class="breakdown">${opt.breakdown}</span>
+  <span class="total-line">${totalLine}</span>
+  <span class="savings ${savClass}">${savLabel}</span>
+  ${netReceivedHtml}
+  ${perPlayerHtml}
+</div>`;
+  }
+
+  resultsEl.innerHTML = html;
+}
+</script>
+</body>
+</html>
