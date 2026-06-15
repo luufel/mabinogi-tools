@@ -130,7 +130,8 @@
 
   .location-header .loc-progress.done { color: var(--green); }
 
-  .location-body { border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; }
+  .location-body { border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; }
+  .location-body .trade:last-child { border-radius: 0 0 6px 6px; }
 
   /* ── Trade row ── */
   .trade {
@@ -218,7 +219,54 @@
     font-family: Arial, sans-serif;
   }
 
-  .cost-item { color: var(--blue); }
+  .cost-item {
+    color: var(--blue);
+    position: relative;
+    cursor: default;
+  }
+
+  .cost-item:hover { color: var(--gold-light); }
+
+  .tooltip {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 7px 10px;
+    font-size: 0.78em;
+    font-family: Arial, sans-serif;
+    color: var(--text);
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: var(--border);
+  }
+
+  .tooltip .tip-title {
+    color: var(--gold);
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 0.95em;
+  }
+
+  .tooltip .tip-ing { color: var(--text-dim); }
+  .tooltip .tip-ing span { color: var(--text); }
+
+  .cost-item:hover .tooltip { display: block; }
 
   .trade.checked .cost-items { opacity: 0.4; }
 </style>
@@ -238,6 +286,57 @@
 <div id="app"></div>
 
 <script>
+const RECIPES = {
+  'Shrimp Taming Bait':           ['Shrimp', 'Garlic', 'Sugar'],
+  'Shyllien':                     ['Shyllien Crystal ×5'],
+  'Magic Parchment':              ['Soft Parchment ×1', 'Mana Herb ×10', 'Sunlight Herb ×10'],
+  'Tough String':                 ['Thick Thread Ball ×5'],
+  'Hillwen Alloy':                ['Hillwen ×1', 'Nickel Ore Fragment ×1', 'Zinc Ore Fragment ×1', 'Tin Ore Fragment ×1', 'Emerald Core ×1'],
+  'Wheat Flour':                  ['Wheat ×10'],
+  'Spin Gear':                    ['Hillwen ×2', 'Hexagonal Bolt ×5', 'Hexagonal Nut ×5'],
+  'Average Firewood':             ['Firewood ×3'],
+  'Fine Silk':                    ['Thin Thread Ball ×5'],
+  'Energy Amplifier':             ['Emerald Core ×3', 'Energy Converter ×3'],
+  'Sturdy Loop':                  ['Braid ×1', 'Infernal Blade Fragment ×1'],
+  'Magic Quill Pen':              ['Vital Feather ×1', 'Mana Herb ×10', 'Gold Herb ×10'],
+  'Stamina 500 Potion':           ['Stamina 300 Potion ×1', 'Four-Leaf Clover ×1', 'Bottled Water ×1'],
+  'Braid':                        ['Thick Thread Ball ×1', 'Thin Thread Ball ×1'],
+  'Cotton Cushion Stuffing':      ['Fine Wool ×20', 'Thin Thread Ball ×5'],
+  'Finest Silk':                  ['Thin Thread Ball ×6'],
+  'Finest Leather Strap':         ['Finest Leather ×1'],
+  'Tough Thread':                 ['Thin Thread Ball ×5'],
+  'Spirit Liqueur':               ['White Herb ×1', 'Piece of an Ancient Spirit Fossil ×1', 'Elemental Remover ×2'],
+  'Silver Plate':                 ['Silver Ingot ×1'],
+  'Fine Fabric':                  ['Thick Thread Ball ×5'],
+  'Pet Playset':                  ["Pet's Favorite Knickknacks ×1", 'Wood Board ×1'],
+  'Hay Bale':                     ['Wheat Chaff ×20', 'Finest Leather Strap ×1'],
+  'Enchanted Firewood':           ['Shyllien ×1', 'Hillwen ×1', 'Average Firewood ×1'],
+  'MP 500 Potion':                ['MP 300 Potion ×1', 'Four-Leaf Clover ×1', 'Bottled Water ×1'],
+  'Fine Firewood':                ['Average Firewood ×3'],
+  'Energy Converter':             ['Hillwen ×1', 'Shyllien ×1'],
+  'Purified Rabbit Foot':         ['Shyllien ×1', 'Mutant Rabbit Foot ×1'],
+  'Sundew':                       ['Shyllien ×1', 'Mutant Plant Mucilage ×1'],
+  'Finest Vanilla Scented Candle':['Fine Vanilla Scented Candle ×1', 'Refined Catalyst ×1'],
+  'Artificial Turf':              ['Fresh Grass ×20', 'Bundle of Flowers ×5'],
+  'Emerald Fuse':                 ['Emerald Core ×1'],
+  'Fine Leather Strap':           ['Fine Leather ×1'],
+  'Large Mythril Nail':           ['Mythril Ingot ×20'],
+  'Poison Tip Wyvern Ballista Bolt': ['Firewood ×1', 'Wyvern Claw ×1', 'Poison Potion ×1'],
+  'Finest Firewood':              ['Fine Firewood ×3'],
+  'Copper Plate':                 ['Copper Ingot ×1'],
+  'Mysterious Herb Powder':       ['Bloody Herb ×1', 'Mana Herb ×1', 'Poison Herb ×1'],
+  'Mythril Plate':                ['Mythril Ingot ×1'],
+  'Barley Flour':                 ['Barley ×10'],
+  'Marionette 500 Potion':        ['Zinc Ore Fragment ×1', 'Tin Ore Fragment ×1', 'Nickel Ore Fragment ×1', 'Gold Herb ×1', 'Base Potion ×1'],
+  'Gold Plate':                   ['Gold Ingot ×1'],
+  'Glittering Paper':             ['Paper ×10', 'Small Silver Gem ×1', 'Small Red Gem ×1', 'Small Blue Gem ×1', 'Small Green Gem ×1'],
+  'Finest Fabric':                ['Thick Thread Ball ×6'],
+  'HP 500 Potion':                ['HP 300 Potion ×1', 'Four-Leaf Clover ×1', 'Bottled Water ×1'],
+  'Mutant':                       ['Mutant Rabbit Foot ×10', 'Mutant Plant Mucilage ×5', 'Sasquatch Heart ×3'],
+  'Harmonious Cosmos Perfume':    ['Empty Bottle ×1', 'Magic Powder ×10', 'Base Herb ×10', 'Cosmos Extract ×1'],
+  'Special Firewood':             ['Finest Firewood ×1', 'Purified Enhancer ×1'],
+};
+
 const LOCATIONS = [
   {
     name: 'Karu Forest',
@@ -365,9 +464,13 @@ function render() {
 
     const tradesHtml = loc.trades.map((trade, ti) => {
       const checked = !!checks[key(li, ti)];
-      const costHtml = trade.cost.map(([name, qty]) =>
-        `<span class="cost-item">${name} ×${qty}</span>`
-      ).join('');
+      const costHtml = trade.cost.map(([name, qty]) => {
+        const recipe = RECIPES[name];
+        const tip = recipe
+          ? `<div class="tooltip"><div class="tip-title">${name}</div>${recipe.map(i => `<div class="tip-ing"><span>${i}</span></div>`).join('')}</div>`
+          : '';
+        return `<span class="cost-item">${name} ×${qty}${tip}</span>`;
+      }).join('');
       return `
 <div class="trade${checked ? ' checked' : ''}" id="trade-${li}-${ti}" onclick="toggle(${li},${ti})">
   <div class="trade-info">
