@@ -225,13 +225,22 @@
   /* ── Trade row ── */
   .trade {
     display: grid;
-    grid-template-columns: 1fr 36px;
-    gap: 0 12px;
+    grid-template-columns: auto 1fr 36px;
+    gap: 0 10px;
     padding: 10px 14px;
     border-bottom: 1px solid var(--border-dim);
     transition: background 0.15s;
     background: var(--surface);
     cursor: pointer;
+  }
+
+  .trade-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    width: 48px;
+    flex-shrink: 0;
   }
 
   .trade:last-child { border-bottom: none; }
@@ -284,6 +293,14 @@
 
   /* Trade info */
   .trade-info { }
+
+  .trade-icon {
+    width: 48px;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    display: block;
+  }
 
   .item-name {
     font-size: 0.92em;
@@ -358,6 +375,7 @@
     border-bottom: 1px solid var(--border-dim);
     background: var(--surface);
     transition: background 0.1s;
+    justify-content: space-between;
   }
 
   .cost-item:last-child { border-bottom: none; }
@@ -403,7 +421,20 @@
     width: 100%;
   }
 
-  .cost-label { position: relative; }
+  .cost-label {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .mat-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    flex-shrink: 0;
+  }
 
   .tooltip {
     display: none;
@@ -703,13 +734,17 @@ function render() {
               }).join('')}</div>`;
             })()
           : '';
+        const iconUrl = `./icons/${encodeURIComponent(name.replace(/ /g, '_'))}.png`;
         return `<div class="cost-item${matDone ? ' mat-checked' : ''}" onclick="event.stopPropagation();toggleMat(${li},${ti},${ci})">
+  <span class="cost-label"><img class="mat-icon" src="${iconUrl}" onerror="this.style.display='none'">${name} ×${qty}${tip}</span>
   <input type="checkbox" class="mat-cb" data-ci="${ci}"${matDone ? ' checked' : ''} onclick="event.stopPropagation()">
-  <span class="cost-label">${name} ×${qty}${tip}</span>
 </div>`;
       }).join('');
       return `
 <div class="trade${checked ? ' checked' : ''}" id="trade-${li}-${ti}" onclick="toggle(${li},${ti})">
+  <div class="trade-icon-wrap">
+    <img class="trade-icon" src="./icons/${trade.item.replace(/ /g, '_')}_Icon.png" onerror="this.style.display='none'">
+  </div>
   <div class="trade-info">
     <div class="item-name">${trade.item}</div>
     <div class="value-range">${trade.value} Ducats &nbsp;·&nbsp; Limit: ${trade.limit}/wk</div>

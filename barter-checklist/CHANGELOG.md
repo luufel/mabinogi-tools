@@ -1,5 +1,10 @@
 # Barter Checklist Changelog
 
+## v1.6 — 2026-06-15
+- Added wiki item icons next to each material ingredient
+- Added wiki item icons next to each barter trade item; icon spans full row height
+- Material checkboxes moved to the right side of each material row
+
 ## v1.5 — 2026-06-15
 - Switch to 4-column grid on desktop, 1-column on mobile
 - Add viewport meta tag so mobile browsers respect screen width
