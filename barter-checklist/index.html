@@ -287,7 +287,7 @@
 
 <script>
 const RECIPES = {
-  'Shrimp Taming Bait':           ['Shrimp', 'Garlic', 'Sugar'],
+  'Shrimp Taming Bait':           { yield: 10, ings: ['Shrimp', 'Garlic', 'Sugar'] },
   'Shyllien':                     ['Shyllien Crystal ×5'],
   'Magic Parchment':              ['Soft Parchment ×1', 'Mana Herb ×10', 'Sunlight Herb ×10'],
   'Tough String':                 ['Thick Thread Ball ×5'],
@@ -467,12 +467,17 @@ function render() {
       const costHtml = trade.cost.map(([name, qty]) => {
         const recipe = RECIPES[name];
         const tip = recipe
-          ? `<div class="tooltip"><div class="tip-title">${name}</div>${recipe.map(ing => {
-              const m = ing.match(/^(.+?)\s*[×x](\d+)$/);
-              const ingName = m ? m[1] : ing;
-              const ingQty = m ? parseInt(m[2]) * qty : qty;
-              return `<div class="tip-ing"><span>${ingName} ×${ingQty}</span></div>`;
-            }).join('')}</div>`
+          ? (() => {
+              const ings = Array.isArray(recipe) ? recipe : recipe.ings;
+              const recipeYield = Array.isArray(recipe) ? 1 : recipe.yield;
+              const crafts = Math.ceil(qty / recipeYield);
+              return `<div class="tooltip"><div class="tip-title">${name}</div>${ings.map(ing => {
+                const m = ing.match(/^(.+?)\s*[×x](\d+)$/);
+                const ingName = m ? m[1] : ing;
+                const ingQty = m ? parseInt(m[2]) * crafts : crafts;
+                return `<div class="tip-ing"><span>${ingName} ×${ingQty}</span></div>`;
+              }).join('')}</div>`;
+            })()
           : '';
         return `<span class="cost-item">${name} ×${qty}${tip}</span>`;
       }).join('');
