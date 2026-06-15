@@ -467,7 +467,12 @@ function render() {
       const costHtml = trade.cost.map(([name, qty]) => {
         const recipe = RECIPES[name];
         const tip = recipe
-          ? `<div class="tooltip"><div class="tip-title">${name}</div>${recipe.map(i => `<div class="tip-ing"><span>${i}</span></div>`).join('')}</div>`
+          ? `<div class="tooltip"><div class="tip-title">${name}</div>${recipe.map(ing => {
+              const m = ing.match(/^(.+?)\s*[×x](\d+)$/);
+              const ingName = m ? m[1] : ing;
+              const ingQty = m ? parseInt(m[2]) * qty : qty;
+              return `<div class="tip-ing"><span>${ingName} ×${ingQty}</span></div>`;
+            }).join('')}</div>`
           : '';
         return `<span class="cost-item">${name} ×${qty}${tip}</span>`;
       }).join('');
