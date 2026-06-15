@@ -3,8 +3,408 @@
 <head>
 <meta charset="UTF-8">
 <title>Mabinogi Barter Checklist</title>
+<style>
+  :root {
+    --bg:           #0f0b06;
+    --surface:      #1e1509;
+    --surface2:     #2c1f0e;
+    --border:       #5a3e18;
+    --border-dim:   #3a2810;
+    --gold:         #c8960e;
+    --gold-light:   #e8c050;
+    --gold-glow:    rgba(200,150,14,0.3);
+    --text:         #ddd0a8;
+    --text-dim:     #7a6a48;
+    --blue:         #5588cc;
+    --green:        #4a9e4a;
+    --green-bg:     #0d1f0d;
+    --green-border: #2d5e2d;
+    --maxed-bg:     #1a1a0a;
+    --maxed-border: #4a4a10;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Georgia, 'Times New Roman', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 48px;
+  }
+
+  header { text-align: center; margin-bottom: 24px; }
+
+  header h1 {
+    color: var(--gold-light);
+    font-size: 1.75em;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 24px var(--gold-glow);
+    margin-bottom: 4px;
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 0.8em;
+    letter-spacing: 0.06em;
+  }
+
+  .toolbar {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+
+  .toolbar .summary {
+    font-size: 0.82em;
+    color: var(--text-dim);
+    font-family: Arial, sans-serif;
+  }
+
+  .toolbar .summary strong { color: var(--gold); }
+
+  .btn-reset {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--gold);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.82em;
+    padding: 5px 12px;
+    letter-spacing: 0.04em;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-reset:hover { border-color: var(--gold); color: var(--gold-light); }
+
+  /* ── Location section ── */
+  .location {
+    width: 100%;
+    max-width: 640px;
+    margin-bottom: 18px;
+  }
+
+  .location-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .location-header h2 {
+    color: var(--gold-light);
+    font-size: 1em;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 10px var(--gold-glow);
+  }
+
+  .location-header .loc-progress {
+    font-size: 0.78em;
+    color: var(--text-dim);
+    font-family: Arial, sans-serif;
+  }
+
+  .location-header .loc-progress.done { color: var(--green); }
+
+  .location-body { border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; }
+
+  /* ── Trade row ── */
+  .trade {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 0 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-dim);
+    transition: background 0.15s;
+    background: var(--surface);
+  }
+
+  .trade:last-child { border-bottom: none; }
+
+  .trade.maxed {
+    background: var(--maxed-bg);
+  }
+
+  /* Counter */
+  .counter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    align-self: start;
+    margin-top: 2px;
+  }
+
+  .counter button {
+    background: var(--surface2);
+    border: 1px solid var(--border-dim);
+    border-radius: 3px;
+    color: var(--gold);
+    cursor: pointer;
+    font-size: 0.95em;
+    line-height: 1;
+    padding: 1px 6px 2px;
+    transition: border-color 0.1s;
+  }
+
+  .counter button:hover { border-color: var(--gold); }
+  .counter button:disabled { opacity: 0.3; cursor: default; }
+
+  .counter .tally {
+    font-family: Arial, sans-serif;
+    font-size: 0.82em;
+    min-width: 36px;
+    text-align: center;
+    color: var(--text-dim);
+  }
+
+  .counter .tally .cur { color: var(--text); font-size: 1.05em; }
+  .trade.maxed .counter .tally .cur { color: var(--green); }
+
+  /* Trade info */
+  .trade-info { }
+
+  .item-name {
+    font-size: 0.92em;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .trade.maxed .item-name { color: var(--text-dim); text-decoration: line-through; }
+
+  .value-range {
+    font-size: 0.78em;
+    color: var(--text-dim);
+    font-family: Arial, sans-serif;
+    margin-bottom: 5px;
+  }
+
+  .cost-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 0.78em;
+    font-family: Arial, sans-serif;
+  }
+
+  .cost-item { color: var(--blue); }
+
+  /* Progress bar */
+  .prog-bar {
+    height: 2px;
+    background: var(--border-dim);
+    border-radius: 1px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+
+  .prog-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 1px;
+    transition: width 0.2s;
+  }
+
+  .trade.maxed .prog-fill { background: var(--green); }
+</style>
 </head>
 <body>
-<p>Coming soon.</p>
+
+<header>
+  <h1>Barter Checklist</h1>
+  <p>MABINOGI · COMMERCE · WEEKLY TRACKER</p>
+</header>
+
+<div class="toolbar">
+  <span class="summary" id="global-summary"></span>
+  <button class="btn-reset" onclick="resetAll()">↺ Reset Week</button>
+</div>
+
+<div id="app"></div>
+
+<script>
+const LOCATIONS = [
+  {
+    name: 'Karu Forest',
+    trades: [
+      { item: 'Wooden Table',          value: '3,410 ~ 4,343',     limit: 25, cost: [['Shrimp Taming Bait', 100], ['Shyllien', 50]] },
+      { item: 'Wooden Craft',           value: '5,802 ~ 7,206',     limit: 15, cost: [['Magic Parchment', 15], ['Tough String', 30]] },
+      { item: 'Stone Horse Statue',     value: '11,590 ~ 13,949',   limit: 10, cost: [['Hillwen Alloy', 20], ['Wheat Flour', 50]] },
+      { item: 'Karu Shiitake Mushroom', value: '22,059 ~ 30,932',   limit:  8, cost: [['Spin Gear', 8], ['Average Firewood', 40], ['Fine Silk', 32]] },
+      { item: 'Shellfish Fossil',       value: '111,300 ~ 179,656', limit:  3, cost: [['Energy Amplifier', 6], ['Sturdy Loop', 3], ['Magic Quill Pen', 15]] },
+    ],
+  },
+  {
+    name: 'Oasis',
+    trades: [
+      { item: 'Fine Sand',           value: '2,644 ~ 3,771',    limit: 25, cost: [['Stamina 500 Potion', 75], ['Braid', 50]] },
+      { item: 'Prison Ghost Wings',  value: '4,742 ~ 6,069',    limit: 15, cost: [['Cotton Cushion Stuffing', 15], ['Finest Silk', 30]] },
+      { item: 'Oasis Painting',      value: '9,990 ~ 12,545',   limit: 10, cost: [['Finest Leather Strap', 10], ['Tough Thread', 30]] },
+      { item: 'Cactus Flower',       value: '24,064 ~ 30,001',  limit:  8, cost: [['Spirit Liqueur', 8], ['Silver Plate', 16], ['Fine Fabric', 32]] },
+      { item: 'Giant Canine Fossil', value: '98,671 ~ 133,402', limit:  3, cost: [['Pet Playset', 3], ['Hay Bale', 9], ['Enchanted Firewood', 15]] },
+    ],
+  },
+  {
+    name: 'Calida',
+    trades: [
+      { item: 'Elvan Egg',             value: '3,313 ~ 4,229',     limit: 25, cost: [['MP 500 Potion', 25], ['Fine Firewood', 50]] },
+      { item: 'Calida Salmon',         value: '5,631 ~ 7,152',     limit: 15, cost: [['Energy Converter', 15], ['Purified Rabbit Foot', 15]] },
+      { item: 'Hot Spring Bath Bomb',  value: '12,872 ~ 15,858',   limit: 10, cost: [['Sundew', 30], ['Finest Vanilla Scented Candle', 20]] },
+      { item: 'Large Camping Tent',    value: '26,084 ~ 33,533',   limit:  8, cost: [['Artificial Turf', 8], ['Emerald Fuse', 8], ['Fine Leather Strap', 40]] },
+      { item: 'Pink Salt',             value: '107,892 ~ 149,675', limit:  3, cost: [['Large Mythril Nail', 9], ['Poison Tip Wyvern Ballista Bolt', 9], ['Finest Firewood', 9]] },
+    ],
+  },
+  {
+    name: 'Pera',
+    trades: [
+      { item: 'Volcanic Mud Pack',           value: '3,473 ~ 4,047',     limit: 25, cost: [['Copper Plate', 50], ['Mysterious Herb Powder', 75]] },
+      { item: 'Magma Stone',                 value: '7,712 ~ 8,947',     limit: 15, cost: [['Mythril Plate', 30], ['Barley Flour', 45]] },
+      { item: 'Ixion Horn',                  value: '13,940 ~ 16,402',   limit: 10, cost: [['Marionette 500 Potion', 30], ['Gold Plate', 50]] },
+      { item: 'Volcano Lizard Egg',          value: '27,687 ~ 39,858',   limit:  8, cost: [['Glittering Paper', 40], ['Finest Fabric', 40], ['HP 500 Potion', 16]] },
+      { item: 'Raspa Black Leopard Leather', value: '119,257 ~ 156,916', limit:  3, cost: [['Mutant', 3], ['Harmonious Cosmos Perfume', 6], ['Special Firewood', 9]] },
+    ],
+  },
+];
+
+const STORAGE_KEY = 'mabi-barter-counts';
+const WEEK_KEY    = 'mabi-barter-week';
+
+function getWeekId() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  return `${d.getFullYear()}-${Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7)}`;
+}
+
+function loadCounts() {
+  const week = localStorage.getItem(WEEK_KEY);
+  if (week !== getWeekId()) {
+    localStorage.setItem(WEEK_KEY, getWeekId());
+    localStorage.removeItem(STORAGE_KEY);
+    return {};
+  }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+}
+
+function saveCounts(counts) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
+  localStorage.setItem(WEEK_KEY, getWeekId());
+}
+
+let counts = loadCounts();
+
+function key(li, ti) { return `${li}-${ti}`; }
+
+function adjust(li, ti, delta) {
+  const k = key(li, ti);
+  const limit = LOCATIONS[li].trades[ti].limit;
+  counts[k] = Math.max(0, Math.min(limit, (counts[k] || 0) + delta));
+  saveCounts(counts);
+  renderTrade(li, ti);
+  renderLocHeader(li);
+  renderGlobalSummary();
+}
+
+function resetAll() {
+  counts = {};
+  saveCounts(counts);
+  render();
+}
+
+function renderTrade(li, ti) {
+  const trade = LOCATIONS[li].trades[ti];
+  const k = key(li, ti);
+  const cur = counts[k] || 0;
+  const maxed = cur >= trade.limit;
+  const pct = trade.limit > 0 ? (cur / trade.limit * 100) : 0;
+
+  const el = document.getElementById(`trade-${li}-${ti}`);
+  if (!el) return;
+
+  el.className = `trade${maxed ? ' maxed' : ''}`;
+  el.querySelector('.cur').textContent = cur;
+  el.querySelector('.prog-fill').style.width = pct + '%';
+  el.querySelector('.btn-dec').disabled = cur <= 0;
+  el.querySelector('.btn-inc').disabled = maxed;
+}
+
+function renderLocHeader(li) {
+  const loc = LOCATIONS[li];
+  const done  = loc.trades.filter((t, ti) => (counts[key(li, ti)] || 0) >= t.limit).length;
+  const total = loc.trades.length;
+  const el = document.getElementById(`loc-prog-${li}`);
+  if (!el) return;
+  el.textContent = `${done}/${total} maxed`;
+  el.className = `loc-progress${done === total ? ' done' : ''}`;
+}
+
+function renderGlobalSummary() {
+  let totalTrades = 0, doneTrades = 0;
+  LOCATIONS.forEach((loc, li) => {
+    loc.trades.forEach((t, ti) => {
+      totalTrades++;
+      if ((counts[key(li, ti)] || 0) >= t.limit) doneTrades++;
+    });
+  });
+  document.getElementById('global-summary').innerHTML =
+    `<strong>${doneTrades}</strong> / ${totalTrades} trades maxed this week`;
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+
+  LOCATIONS.forEach((loc, li) => {
+    const done  = loc.trades.filter((t, ti) => (counts[key(li, ti)] || 0) >= t.limit).length;
+    const total = loc.trades.length;
+
+    const tradesHtml = loc.trades.map((trade, ti) => {
+      const cur   = counts[key(li, ti)] || 0;
+      const maxed = cur >= trade.limit;
+      const pct   = trade.limit > 0 ? (cur / trade.limit * 100) : 0;
+      const costHtml = trade.cost.map(([name, qty]) =>
+        `<span class="cost-item">${name} ×${qty}</span>`
+      ).join('');
+      return `
+<div class="trade${maxed ? ' maxed' : ''}" id="trade-${li}-${ti}">
+  <div class="counter">
+    <button class="btn-dec" onclick="adjust(${li},${ti},-1)"${cur <= 0 ? ' disabled' : ''}>−</button>
+    <span class="tally"><span class="cur">${cur}</span>/${trade.limit}</span>
+    <button class="btn-inc" onclick="adjust(${li},${ti},1)"${maxed ? ' disabled' : ''}>+</button>
+  </div>
+  <div class="trade-info">
+    <div class="item-name">${trade.item}</div>
+    <div class="value-range">${trade.value} g &nbsp;·&nbsp; Limit: ${trade.limit}/wk</div>
+    <div class="cost-items">${costHtml}</div>
+    <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+  </div>
+</div>`;
+    }).join('');
+
+    app.innerHTML += `
+<div class="location">
+  <div class="location-header">
+    <h2>${loc.name}</h2>
+    <span class="loc-progress${done === total ? ' done' : ''}" id="loc-prog-${li}">${done}/${total} maxed</span>
+  </div>
+  <div class="location-body">${tradesHtml}</div>
+</div>`;
+  });
+
+  renderGlobalSummary();
+}
+
+render();
+</script>
 </body>
 </html>
