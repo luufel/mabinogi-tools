@@ -123,54 +123,62 @@
   /* ── Trade row ── */
   .trade {
     display: grid;
-    grid-template-columns: 90px 1fr;
+    grid-template-columns: 1fr 36px;
     gap: 0 12px;
     padding: 10px 14px;
     border-bottom: 1px solid var(--border-dim);
     transition: background 0.15s;
     background: var(--surface);
+    cursor: pointer;
   }
 
   .trade:last-child { border-bottom: none; }
 
-  .trade.maxed {
+  .trade.checked {
     background: var(--maxed-bg);
   }
 
-  /* Counter */
-  .counter {
+  /* Checkbox */
+  .cb-wrap {
     display: flex;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
     align-self: start;
     margin-top: 2px;
   }
 
-  .counter button {
+  .cb-wrap input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
     background: var(--surface2);
-    border: 1px solid var(--border-dim);
-    border-radius: 3px;
-    color: var(--gold);
     cursor: pointer;
-    font-size: 0.95em;
-    line-height: 1;
-    padding: 1px 6px 2px;
-    transition: border-color 0.1s;
+    position: relative;
+    flex-shrink: 0;
+    transition: border-color 0.15s, background 0.15s;
   }
 
-  .counter button:hover { border-color: var(--gold); }
-  .counter button:disabled { opacity: 0.3; cursor: default; }
+  .cb-wrap input[type="checkbox"]:checked {
+    background: var(--green-bg);
+    border-color: var(--green);
+  }
 
-  .counter .tally {
-    font-family: Arial, sans-serif;
-    font-size: 0.82em;
-    min-width: 36px;
+  .cb-wrap input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--green);
+    font-size: 13px;
+    line-height: 18px;
     text-align: center;
-    color: var(--text-dim);
+    width: 100%;
   }
-
-  .counter .tally .cur { color: var(--text); font-size: 1.05em; }
-  .trade.maxed .counter .tally .cur { color: var(--green); }
 
   /* Trade info */
   .trade-info { }
@@ -181,7 +189,7 @@
     margin-bottom: 2px;
   }
 
-  .trade.maxed .item-name { color: var(--text-dim); text-decoration: line-through; }
+  .trade.checked .item-name { color: var(--text-dim); text-decoration: line-through; }
 
   .value-range {
     font-size: 0.78em;
@@ -200,23 +208,7 @@
 
   .cost-item { color: var(--blue); }
 
-  /* Progress bar */
-  .prog-bar {
-    height: 2px;
-    background: var(--border-dim);
-    border-radius: 1px;
-    margin-top: 6px;
-    overflow: hidden;
-  }
-
-  .prog-fill {
-    height: 100%;
-    background: var(--gold);
-    border-radius: 1px;
-    transition: width 0.2s;
-  }
-
-  .trade.maxed .prog-fill { background: var(--green); }
+  .trade.checked .cost-items { opacity: 0.4; }
 </style>
 </head>
 <body>
@@ -277,7 +269,7 @@ const LOCATIONS = [
   },
 ];
 
-const STORAGE_KEY = 'mabi-barter-counts';
+const STORAGE_KEY = 'mabi-barter-checks';
 const WEEK_KEY    = 'mabi-barter-week';
 
 function getWeekId() {
@@ -286,7 +278,7 @@ function getWeekId() {
   return `${d.getFullYear()}-${Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7)}`;
 }
 
-function loadCounts() {
+function loadChecks() {
   const week = localStorage.getItem(WEEK_KEY);
   if (week !== getWeekId()) {
     localStorage.setItem(WEEK_KEY, getWeekId());
@@ -296,68 +288,59 @@ function loadCounts() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
 }
 
-function saveCounts(counts) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
+function saveChecks() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(checks));
   localStorage.setItem(WEEK_KEY, getWeekId());
 }
 
-let counts = loadCounts();
+let checks = loadChecks();
 
 function key(li, ti) { return `${li}-${ti}`; }
 
-function adjust(li, ti, delta) {
+function toggle(li, ti) {
   const k = key(li, ti);
-  const limit = LOCATIONS[li].trades[ti].limit;
-  counts[k] = Math.max(0, Math.min(limit, (counts[k] || 0) + delta));
-  saveCounts(counts);
+  checks[k] = !checks[k];
+  saveChecks();
   renderTrade(li, ti);
   renderLocHeader(li);
   renderGlobalSummary();
 }
 
 function resetAll() {
-  counts = {};
-  saveCounts(counts);
+  checks = {};
+  saveChecks();
   render();
 }
 
 function renderTrade(li, ti) {
-  const trade = LOCATIONS[li].trades[ti];
   const k = key(li, ti);
-  const cur = counts[k] || 0;
-  const maxed = cur >= trade.limit;
-  const pct = trade.limit > 0 ? (cur / trade.limit * 100) : 0;
-
+  const done = !!checks[k];
   const el = document.getElementById(`trade-${li}-${ti}`);
   if (!el) return;
-
-  el.className = `trade${maxed ? ' maxed' : ''}`;
-  el.querySelector('.cur').textContent = cur;
-  el.querySelector('.prog-fill').style.width = pct + '%';
-  el.querySelector('.btn-dec').disabled = cur <= 0;
-  el.querySelector('.btn-inc').disabled = maxed;
+  el.className = `trade${done ? ' checked' : ''}`;
+  el.querySelector('input[type="checkbox"]').checked = done;
 }
 
 function renderLocHeader(li) {
   const loc = LOCATIONS[li];
-  const done  = loc.trades.filter((t, ti) => (counts[key(li, ti)] || 0) >= t.limit).length;
+  const done  = loc.trades.filter((_, ti) => !!checks[key(li, ti)]).length;
   const total = loc.trades.length;
   const el = document.getElementById(`loc-prog-${li}`);
   if (!el) return;
-  el.textContent = `${done}/${total} maxed`;
+  el.textContent = `${done}/${total} done`;
   el.className = `loc-progress${done === total ? ' done' : ''}`;
 }
 
 function renderGlobalSummary() {
-  let totalTrades = 0, doneTrades = 0;
+  let total = 0, done = 0;
   LOCATIONS.forEach((loc, li) => {
-    loc.trades.forEach((t, ti) => {
-      totalTrades++;
-      if ((counts[key(li, ti)] || 0) >= t.limit) doneTrades++;
+    loc.trades.forEach((_, ti) => {
+      total++;
+      if (checks[key(li, ti)]) done++;
     });
   });
   document.getElementById('global-summary').innerHTML =
-    `<strong>${doneTrades}</strong> / ${totalTrades} trades maxed this week`;
+    `<strong>${done}</strong> / ${total} materials gathered this week`;
 }
 
 function render() {
@@ -365,28 +348,23 @@ function render() {
   app.innerHTML = '';
 
   LOCATIONS.forEach((loc, li) => {
-    const done  = loc.trades.filter((t, ti) => (counts[key(li, ti)] || 0) >= t.limit).length;
+    const done  = loc.trades.filter((_, ti) => !!checks[key(li, ti)]).length;
     const total = loc.trades.length;
 
     const tradesHtml = loc.trades.map((trade, ti) => {
-      const cur   = counts[key(li, ti)] || 0;
-      const maxed = cur >= trade.limit;
-      const pct   = trade.limit > 0 ? (cur / trade.limit * 100) : 0;
+      const checked = !!checks[key(li, ti)];
       const costHtml = trade.cost.map(([name, qty]) =>
         `<span class="cost-item">${name} ×${qty}</span>`
       ).join('');
       return `
-<div class="trade${maxed ? ' maxed' : ''}" id="trade-${li}-${ti}">
-  <div class="counter">
-    <button class="btn-dec" onclick="adjust(${li},${ti},-1)"${cur <= 0 ? ' disabled' : ''}>−</button>
-    <span class="tally"><span class="cur">${cur}</span>/${trade.limit}</span>
-    <button class="btn-inc" onclick="adjust(${li},${ti},1)"${maxed ? ' disabled' : ''}>+</button>
-  </div>
+<div class="trade${checked ? ' checked' : ''}" id="trade-${li}-${ti}" onclick="toggle(${li},${ti})">
   <div class="trade-info">
     <div class="item-name">${trade.item}</div>
-    <div class="value-range">${trade.value} g &nbsp;·&nbsp; Limit: ${trade.limit}/wk</div>
+    <div class="value-range">${trade.value} Ducats &nbsp;·&nbsp; Limit: ${trade.limit}/wk</div>
     <div class="cost-items">${costHtml}</div>
-    <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+  </div>
+  <div class="cb-wrap">
+    <input type="checkbox"${checked ? ' checked' : ''} onclick="event.stopPropagation();toggle(${li},${ti})">
   </div>
 </div>`;
     }).join('');
@@ -395,7 +373,7 @@ function render() {
 <div class="location">
   <div class="location-header">
     <h2>${loc.name}</h2>
-    <span class="loc-progress${done === total ? ' done' : ''}" id="loc-prog-${li}">${done}/${total} maxed</span>
+    <span class="loc-progress${done === total ? ' done' : ''}" id="loc-prog-${li}">${done}/${total} done</span>
   </div>
   <div class="location-body">${tradesHtml}</div>
 </div>`;
