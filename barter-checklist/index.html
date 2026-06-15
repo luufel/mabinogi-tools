@@ -54,7 +54,7 @@
 
   .toolbar {
     width: 100%;
-    max-width: 640px;
+    max-width: 1320px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -84,11 +84,23 @@
 
   .btn-reset:hover { border-color: var(--gold); color: var(--gold-light); }
 
+  /* ── Location grid ── */
+  #app {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 640px));
+    gap: 18px;
+    width: 100%;
+    max-width: 1320px;
+  }
+
+  @media (max-width: 640px) {
+    #app { grid-template-columns: 1fr; }
+  }
+
   /* ── Location section ── */
   .location {
     width: 100%;
-    max-width: 640px;
-    margin-bottom: 18px;
+    margin-bottom: 0;
   }
 
   .location-header {
