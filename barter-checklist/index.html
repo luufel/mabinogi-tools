@@ -299,28 +299,116 @@
     margin-bottom: 5px;
   }
 
+  .materials-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    user-select: none;
+    border: none;
+    background: none;
+    padding: 0;
+    width: 100%;
+  }
+
+  .materials-toggle .mat-divider {
+    flex: 1;
+    height: 1px;
+    background: var(--border-dim);
+  }
+
+  .materials-toggle .mat-label {
+    font-size: 0.7em;
+    font-family: Arial, sans-serif;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .materials-toggle:hover .mat-label { color: var(--gold-light); }
+  .materials-toggle:hover .mat-divider { background: var(--border); }
+
   .cost-items {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px 12px;
+    flex-direction: column;
     font-size: 0.78em;
     font-family: Arial, sans-serif;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
   }
+
+  .cost-item:first-child { border-radius: 4px 4px 0 0; }
+  .cost-item:last-child  { border-radius: 0 0 4px 4px; }
+  .cost-item:only-child  { border-radius: 4px; }
+
+  .cost-items.collapsed { display: none; }
 
   .cost-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
     color: var(--blue);
     position: relative;
-    cursor: default;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border-dim);
+    background: var(--surface);
+    transition: background 0.1s;
   }
 
-  .cost-item:hover { color: var(--gold-light); }
+  .cost-item:last-child { border-bottom: none; }
+  .cost-item:hover { background: var(--surface2); }
+
+  .cost-item.mat-checked { color: var(--text-dim); background: var(--maxed-bg); }
+  .cost-item.mat-checked > .cost-label { text-decoration: line-through; }
+
+  .cost-item:hover > .cost-label { color: var(--gold-light); }
+  .cost-item.mat-checked:hover > .cost-label { color: var(--text-dim); }
+
+  /* Small material checkbox */
+  .mat-cb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--surface2);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .mat-cb:checked {
+    background: var(--green-bg);
+    border-color: var(--green);
+  }
+
+  .mat-cb:checked::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--green);
+    font-size: 10px;
+    line-height: 14px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .cost-label { position: relative; }
 
   .tooltip {
     display: none;
     position: absolute;
     top: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 5px;
@@ -338,8 +426,7 @@
     content: '';
     position: absolute;
     bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 14px;
     border: 5px solid transparent;
     border-bottom-color: var(--border);
   }
@@ -354,7 +441,7 @@
   .tooltip .tip-ing { color: var(--text-dim); }
   .tooltip .tip-ing span { color: var(--text); }
 
-  .cost-item:hover .tooltip { display: block; }
+  .cost-label:hover .tooltip { display: block; }
 
   .trade.checked .cost-items { opacity: 0.4; }
 </style>
@@ -496,15 +583,53 @@ function saveChecks() {
 
 let checks = loadChecks();
 
-function key(li, ti) { return `${li}-${ti}`; }
+function key(li, ti)      { return `${li}-${ti}`; }
+function matKey(li, ti, ci) { return `${li}-${ti}-${ci}`; }
 
 function toggle(li, ti) {
-  const k = key(li, ti);
-  checks[k] = !checks[k];
+  const trade = LOCATIONS[li].trades[ti];
+  const allMatsDone = trade.cost.every((_, ci) => !!checks[matKey(li, ti, ci)]);
+  // If all mats already checked, uncheck everything; otherwise check everything
+  const newState = !allMatsDone;
+  checks[key(li, ti)] = newState;
+  trade.cost.forEach((_, ci) => { checks[matKey(li, ti, ci)] = newState; });
   saveChecks();
   renderTrade(li, ti);
   renderLocHeader(li);
   renderGlobalSummary();
+}
+
+function toggleMat(li, ti, ci) {
+  const k = matKey(li, ti, ci);
+  checks[k] = !checks[k];
+  // Auto-check trade row if all materials are now done
+  const trade = LOCATIONS[li].trades[ti];
+  const allDone = trade.cost.every((_, i) => !!checks[matKey(li, ti, i)]);
+  checks[key(li, ti)] = allDone;
+  saveChecks();
+  renderTrade(li, ti);
+  renderLocHeader(li);
+  renderGlobalSummary();
+}
+
+function toggleLocation(li) {
+  const loc = LOCATIONS[li];
+  const allDone = loc.trades.every((_, ti) => !!checks[key(li, ti)]);
+  const newState = !allDone;
+  loc.trades.forEach((trade, ti) => {
+    checks[key(li, ti)] = newState;
+    trade.cost.forEach((_, ci) => { checks[matKey(li, ti, ci)] = newState; });
+  });
+  saveChecks();
+  loc.trades.forEach((_, ti) => renderTrade(li, ti));
+  renderLocHeader(li);
+  renderGlobalSummary();
+}
+
+function toggleMaterials(btn) {
+  const list = btn.nextElementSibling;
+  const collapsed = list.classList.toggle('collapsed');
+  btn.querySelector('.mat-label').textContent = (collapsed ? '▸' : '▾') + ' Materials';
 }
 
 function resetAll() {
@@ -514,12 +639,19 @@ function resetAll() {
 }
 
 function renderTrade(li, ti) {
-  const k = key(li, ti);
-  const done = !!checks[k];
+  const trade = LOCATIONS[li].trades[ti];
+  const done = !!checks[key(li, ti)];
   const el = document.getElementById(`trade-${li}-${ti}`);
   if (!el) return;
   el.className = `trade${done ? ' checked' : ''}`;
-  el.querySelector('input[type="checkbox"]').checked = done;
+  el.querySelector('.trade-cb').checked = done;
+  trade.cost.forEach((_, ci) => {
+    const matEl = el.querySelector(`[data-ci="${ci}"]`);
+    if (!matEl) return;
+    const matDone = !!checks[matKey(li, ti, ci)];
+    matEl.checked = matDone;
+    matEl.closest('.cost-item').className = `cost-item${matDone ? ' mat-checked' : ''}`;
+  });
 }
 
 function renderLocHeader(li) {
@@ -554,7 +686,8 @@ function render() {
 
     const tradesHtml = loc.trades.map((trade, ti) => {
       const checked = !!checks[key(li, ti)];
-      const costHtml = trade.cost.map(([name, qty]) => {
+      const costHtml = trade.cost.map(([name, qty], ci) => {
+        const matDone = !!checks[matKey(li, ti, ci)];
         const recipe = RECIPES[name];
         const tip = recipe
           ? (() => {
@@ -569,24 +702,32 @@ function render() {
               }).join('')}</div>`;
             })()
           : '';
-        return `<span class="cost-item">${name} ×${qty}${tip}</span>`;
+        return `<div class="cost-item${matDone ? ' mat-checked' : ''}" onclick="event.stopPropagation();toggleMat(${li},${ti},${ci})">
+  <input type="checkbox" class="mat-cb" data-ci="${ci}"${matDone ? ' checked' : ''} onclick="event.stopPropagation()">
+  <span class="cost-label">${name} ×${qty}${tip}</span>
+</div>`;
       }).join('');
       return `
 <div class="trade${checked ? ' checked' : ''}" id="trade-${li}-${ti}" onclick="toggle(${li},${ti})">
   <div class="trade-info">
     <div class="item-name">${trade.item}</div>
     <div class="value-range">${trade.value} Ducats &nbsp;·&nbsp; Limit: ${trade.limit}/wk</div>
+    <button class="materials-toggle" onclick="event.stopPropagation();toggleMaterials(this)">
+      <span class="mat-divider"></span>
+      <span class="mat-label">▾ Materials</span>
+      <span class="mat-divider"></span>
+    </button>
     <div class="cost-items">${costHtml}</div>
   </div>
   <div class="cb-wrap">
-    <input type="checkbox"${checked ? ' checked' : ''} onclick="event.stopPropagation();toggle(${li},${ti})">
+    <input type="checkbox" class="trade-cb"${checked ? ' checked' : ''} onclick="event.stopPropagation();toggle(${li},${ti})">
   </div>
 </div>`;
     }).join('');
 
     app.innerHTML += `
 <div class="location">
-  <div class="location-header">
+  <div class="location-header" onclick="toggleLocation(${li})">
     <h2>${loc.name}</h2>
     <span class="loc-progress${done === total ? ' done' : ''}" id="loc-prog-${li}">${done}/${total} done</span>
   </div>
@@ -603,6 +744,19 @@ render();
 <details class="changelog">
   <summary>Changelog</summary>
   <div class="changelog-body">
+    <div class="cl-entry">
+      <div class="cl-header">
+        <span class="cl-version">v1.4</span>
+        <span class="cl-date">2026-06-15</span>
+      </div>
+      <ul>
+        <li>Added <span>individual material checkboxes</span> — tick each ingredient separately; trade auto-checks when all materials are done</li>
+        <li>Added collapsible <span>Materials</span> divider per trade row to show/hide ingredients</li>
+        <li>Material rows are now <span>full-width clickable</span> with thin dividers between them</li>
+        <li>Clicking a <span>location header</span> (e.g. Karu Forest) toggles all trades and materials in that location</li>
+        <li>Fixed recipe tooltip clipping caused by overflow on material list container</li>
+      </ul>
+    </div>
     <div class="cl-entry">
       <div class="cl-header">
         <span class="cl-version">v1.3</span>
