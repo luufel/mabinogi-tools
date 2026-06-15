@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GB VHM Physical Upgrades — Mabinogi Tools</title>
+<style>
+  :root {
+    --bg:       #0f0b06;
+    --surface:  #1e1509;
+    --surface2: #2c1f0e;
+    --border:   #5a3a1a;
+    --border-dim:#3a2810;
+    --gold:     #c8922a;
+    --gold2:    #e8b84b;
+    --text:     #f0ddb0;
+    --muted:    #a08050;
+    --green:    #5fbf5f;
+    --green-bg: #122012;
+    --red:      #d4694a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .back-btn {
+    position: fixed;
+    top: 14px; left: 16px;
+    display: inline-flex; align-items: center; gap: 0.3em;
+    font-size: 0.8em; color: var(--muted);
+    text-decoration: none;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 11px;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, border-color 0.15s;
+    z-index: 100;
+  }
+  .back-btn:hover { color: var(--gold2); border-color: var(--gold); }
+
+  header { text-align: center; margin-bottom: 1.5rem; }
+
+  .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem; }
+  .breadcrumb a { color: var(--muted); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--gold); }
+
+  header h1 {
+    font-size: 1.7rem;
+    color: var(--gold2);
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 20px rgba(200, 146, 42, 0.4);
+  }
+  header p { color: var(--muted); margin-top: 0.4rem; font-size: 0.85rem; }
+  header .credit { color: var(--muted); margin-top: 0.2rem; font-size: 0.72rem; opacity: 0.8; }
+
+  .divider {
+    width: 120px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 0.9rem auto 0;
+  }
+
+  .toolbar {
+    width: 100%; max-width: 980px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; margin-bottom: 0.9rem; flex-wrap: wrap;
+  }
+  .hint { font-size: 0.78rem; color: var(--muted); }
+  .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--gold);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 6px 13px;
+    letter-spacing: 0.04em;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn:hover { border-color: var(--gold); color: var(--gold2); }
+
+  .table-area {
+    position: relative;
+    width: 100%; max-width: 980px;
+  }
+
+  .table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  /* Recommendation marker — sits in the margin beside the best row */
+  .rec-marker {
+    position: absolute;
+    left: 0; top: 0;
+    transform: translate(-100%, -50%);
+    margin-left: -10px;
+    display: none;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .rec-marker.show { display: flex; }
+  .rec-marker .rec-text {
+    font-size: 0.62rem; letter-spacing: 0.08em; font-weight: 700;
+    text-transform: uppercase; color: var(--green);
+  }
+  .rec-marker .rec-arrow { color: var(--green); font-size: 0.95rem; line-height: 1; }
+
+  tbody tr.best-row td:first-child { box-shadow: inset 3px 0 0 var(--green); }
+
+  /* Below the floating marker's breathing room — show it inline instead */
+  @media (max-width: 1119px) {
+    .rec-marker { display: none !important; }
+    tbody tr.best-row .slot::after { content: ' ★'; color: var(--green); font-size: 0.85em; }
+  }
+
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+
+  thead th {
+    background: var(--surface2);
+    color: var(--gold2);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  thead th.num { text-align: right; }
+  thead th.ctr { text-align: center; }
+
+  tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border-dim);
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.done { background: var(--green-bg); }
+  tbody tr.done .slot { color: var(--muted); }
+
+  .slot { color: var(--text); font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.ctr { text-align: center; }
+
+  /* Finished checkbox */
+  input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none;
+    width: 19px; height: 19px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface2);
+    cursor: pointer; position: relative; vertical-align: middle;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  input[type="checkbox"]:checked { background: var(--green-bg); border-color: var(--green); }
+  input[type="checkbox"]:checked::after {
+    content: '✓'; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--green); font-size: 12px;
+  }
+
+  input.cell, select.cell {
+    background: var(--bg);
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 4px 6px;
+  }
+  input.cell { width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+  select.cell { max-width: 170px; }
+  input.cell:focus, select.cell:focus { outline: none; border-color: var(--gold); }
+  tr.done input.cell, tr.done select.cell { opacity: 0.45; }
+
+  .cpm { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  tfoot td {
+    padding: 11px 10px;
+    border-top: 2px solid var(--border);
+    font-size: 0.86rem;
+    background: var(--surface2);
+    font-variant-numeric: tabular-nums;
+  }
+  tfoot .lbl { text-align: right; color: var(--gold2); font-weight: 600; letter-spacing: 0.03em; }
+  tfoot .num { text-align: right; font-weight: 600; }
+
+  .legend {
+    width: 100%; max-width: 980px;
+    margin-top: 0.8rem;
+    font-size: 0.74rem; color: var(--muted);
+    display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center;
+  }
+  .legend .swatch { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:middle; margin-right:5px; }
+
+  /* Changelog */
+  .changelog {
+    width: 100%; max-width: 980px;
+    margin-top: 2rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+  .changelog summary {
+    cursor: pointer; padding: 10px 16px;
+    font-size: 0.8em; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+    user-select: none; list-style: none;
+  }
+  .changelog summary::-webkit-details-marker { display: none; }
+  .changelog summary::before { content: '▸  '; }
+  details.changelog[open] summary::before { content: '▾  '; }
+  .changelog summary:hover { color: var(--gold2); }
+  .changelog-body {
+    border-top: 1px solid var(--border);
+    padding: 14px 18px 18px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .cl-entry { display: flex; flex-direction: column; gap: 4px; }
+  .cl-header { display: flex; align-items: baseline; gap: 10px; }
+  .cl-version { font-size: 0.85em; font-weight: bold; color: var(--gold); letter-spacing: 0.04em; }
+  .cl-date { font-size: 0.75em; color: var(--muted); }
+  .cl-entry ul { margin: 0; padding-left: 1.2em; list-style: disc; }
+  .cl-entry li { font-size: 0.8em; color: var(--muted); line-height: 1.6; }
+
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: 0.75rem; text-align: center; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="../">‹ All Tools</a>
+
+<header>
+  <div class="breadcrumb"><a href="../">Mabinogi Tools</a> › GB VHM Physical Upgrades</div>
+  <h1>GB VHM Physical Damage Upgrades</h1>
+  <p>Plan Glenn Bearna VHM enchant upgrades by cost per point of damage</p>
+  <p class="credit">Calculator concept &amp; data credit: Beleren</p>
+  <div class="divider"></div>
+</header>
+
+<div class="toolbar">
+  <span class="hint">Edit <strong>Current Max</strong>, <strong>Replacement</strong> &amp; <strong>Cost</strong>; check off finished slots. Saves automatically.</span>
+  <button class="btn" onclick="resetAll()">↺ Reset</button>
+</div>
+
+<div class="table-area" id="table-area">
+  <div class="rec-marker" id="rec-marker">
+    <span class="rec-text">Best</span>
+    <span class="rec-arrow">▸</span>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th class="ctr">Done</th>
+        <th>Enchant Slot</th>
+        <th class="num">Current Max</th>
+        <th>VHM Replacement</th>
+        <th class="num">VHM Cost (M)</th>
+        <th class="num">Avg Dmg Increase</th>
+        <th class="num">Cost / Max</th>
+        <th class="num">Avg Cost (M)</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+    <tfoot id="foot"></tfoot>
+  </table>
+  </div>
+</div>
+
+<div class="legend">
+  <span><span class="swatch" style="background:var(--green)"></span>Cheaper per max (do first)</span>
+  <span><span class="swatch" style="background:var(--red)"></span>Pricier per max (do last)</span>
+  <span><span style="color:var(--green);font-weight:700">Best ▸</span> marks the lowest cost per max — the most efficient upgrade to do next.</span>
+  <span>“Cost / Max” = cost ÷ average damage gained — lower is more efficient.</span>
+</div>
+
+<details class="changelog" id="changelog">
+  <summary>Changelog</summary>
+  <div class="changelog-body" id="changelog-body"></div>
+</details>
+
+<footer>luufel &middot; <a href="https://github.com/luufel/mabinogi-tools">GitHub</a></footer>
+
+<script>
+// ── Reference data: Enchant Rolls (avg / min / max damage) ──
+const ENCHANTS = [
+  { name: 'Longing',           avg: 22.5, min: 20, max: 25 },
+  { name: 'Abominable Rabbit', avg: 26,   min: 24, max: 28 },
+  { name: 'Vanished',          avg: 52.5, min: 50, max: 55 },
+  { name: 'Trajectory',        avg: 52.5, min: 50, max: 55 },
+  { name: 'Fleeing',           avg: 22.5, min: 20, max: 25 },
+  { name: 'Folach Catt',       avg: 22,   min: 20, max: 24 },
+  { name: 'Max Damage Scroll', avg: 50,   min: 50, max: 50 },
+  { name: 'Imprisoning',       avg: 22,   min: 20, max: 24 },
+  { name: 'Haunted',           avg: 41.5, min: 35, max: 48 },
+];
+const ENCH_BY_NAME = Object.fromEntries(ENCHANTS.map(e => [e.name, e]));
+
+// ── Default rows (mirrors Beleren's Calc sheet) ──
+const DEFAULTS = [
+  { slot: 'Hat Prefix',       currentMax: 24, replacement: 'Longing',           cost: 84,  finished: true  },
+  { slot: 'Hat Suffix',       currentMax: 27, replacement: 'Abominable Rabbit', cost: 71,  finished: true  },
+  { slot: 'Body Prefix',      currentMax: 51, replacement: 'Vanished',          cost: 275, finished: true  },
+  { slot: 'Body Suffix',      currentMax: 50, replacement: 'Trajectory',        cost: 265, finished: true  },
+  { slot: 'Glove Prefix',     currentMax: 16, replacement: 'Fleeing',           cost: 175, finished: false },
+  { slot: 'Glove Suffix',     currentMax: 15, replacement: 'Folach Catt',       cost: 200, finished: false },
+  { slot: 'Boot Prefix',      currentMax: 15, replacement: 'Fleeing',           cost: 175, finished: false },
+  { slot: 'Boot Suffix',      currentMax: 15, replacement: 'Folach Catt',       cost: 200, finished: false },
+  { slot: 'Accessory Prefix', currentMax: 11, replacement: 'Imprisoning',       cost: 92,  finished: false },
+  { slot: 'Accessory Prefix', currentMax: 12, replacement: 'Imprisoning',       cost: 92,  finished: false },
+  { slot: 'Accessory Suffix', currentMax: 0,  replacement: 'Haunted',           cost: 760, finished: false },
+  { slot: 'Accessory Suffix', currentMax: 3,  replacement: 'Haunted',           cost: 760, finished: false },
+  { slot: 'Circlet',          currentMax: 0,  replacement: 'Max Damage Scroll', cost: 380, finished: true  },
+];
+
+const STORAGE_KEY = 'mabi-vhm-phys';
+
+function loadRows() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (Array.isArray(saved) && saved.length === DEFAULTS.length) {
+      return DEFAULTS.map((d, i) => ({ ...d, ...saved[i], slot: d.slot }));
+    }
+  } catch {}
+  return DEFAULTS.map(d => ({ ...d }));
+}
+
+let rows = loadRows();
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(rows)); }
+
+// ── Per-row calculations ──
+function calc(r) {
+  const ench = ENCH_BY_NAME[r.replacement];
+  const avg = ench ? ench.avg : 0;
+  const increase = r.finished ? 0 : Math.max(0, avg - (Number(r.currentMax) || 0));
+  const cost = Number(r.cost) || 0;
+  const costPerMax = (r.finished || increase <= 0) ? null : cost / increase;
+  const avgCost = r.finished ? 0 : cost;
+  return { increase, costPerMax, avgCost };
+}
+
+// Map a cost-per-max value to a green→red color, relative to active rows.
+function cpmColor(v, lo, hi) {
+  if (v == null) return 'var(--muted)';
+  if (hi === lo) return 'var(--green)';
+  const t = (v - lo) / (hi - lo);            // 0 = cheapest, 1 = priciest
+  const h = 120 * (1 - t);                    // 120=green → 0=red
+  return `hsl(${h}, 55%, 60%)`;
+}
+
+function render() {
+  const tbody = document.getElementById('rows');
+
+  const computed = rows.map(calc);
+  const activeCpm = computed.filter(c => c.costPerMax != null).map(c => c.costPerMax);
+  const lo = Math.min(...activeCpm), hi = Math.max(...activeCpm);
+  let bestIndex = null, bestCpm = Infinity;
+  computed.forEach((c, i) => {
+    if (c.costPerMax != null && c.costPerMax < bestCpm) { bestCpm = c.costPerMax; bestIndex = i; }
+  });
+
+  const optionsHtml = ENCHANTS.map(e =>
+    `<option value="${e.name}">${e.name} (${e.avg})</option>`).join('');
+
+  tbody.innerHTML = rows.map((r, i) => {
+    const c = computed[i];
+    const cpmTxt = c.costPerMax == null ? '—' : c.costPerMax.toFixed(2);
+    const color = cpmColor(c.costPerMax, lo, hi);
+    const isBest = i === bestIndex;
+    return `
+<tr class="${r.finished ? 'done' : ''}${isBest ? ' best-row' : ''}">
+  <td class="ctr"><input type="checkbox" ${r.finished ? 'checked' : ''} onchange="setField(${i},'finished',this.checked)"></td>
+  <td class="slot">${r.slot}</td>
+  <td class="num"><input class="cell" type="number" min="0" step="0.5" value="${r.currentMax}" onchange="setField(${i},'currentMax',this.value)"></td>
+  <td><select class="cell" onchange="setField(${i},'replacement',this.value)">${optionsHtml.replace(`value="${r.replacement}"`, `value="${r.replacement}" selected`)}</select></td>
+  <td class="num"><input class="cell" type="number" min="0" step="1" value="${r.cost}" onchange="setField(${i},'cost',this.value)"></td>
+  <td class="num">${r.finished ? '—' : c.increase.toFixed(1)}</td>
+  <td class="num"><span class="cpm" style="color:${color}">${cpmTxt}</span></td>
+  <td class="num">${r.finished ? '—' : c.avgCost.toFixed(0)}</td>
+</tr>`;
+  }).join('');
+
+  // Totals
+  const totIncrease = computed.reduce((s, c) => s + c.increase, 0);
+  const totCost = computed.reduce((s, c) => s + c.avgCost, 0);
+  const overall = totIncrease > 0 ? (totCost / totIncrease) : 0;
+  const remaining = rows.filter(r => !r.finished).length;
+
+  document.getElementById('foot').innerHTML = `
+<tr>
+  <td></td>
+  <td class="lbl">Remaining: ${remaining}</td>
+  <td></td>
+  <td class="lbl">Totals →</td>
+  <td></td>
+  <td class="num">+${totIncrease.toFixed(1)}</td>
+  <td class="num">${overall ? overall.toFixed(2) : '—'}</td>
+  <td class="num">${totCost.toFixed(0)}</td>
+</tr>`;
+
+  lastBestIndex = bestIndex;
+  positionRecMarker();
+}
+
+// Align the floating "Best ▸" marker to the vertical center of the best row.
+let lastBestIndex = null;
+function positionRecMarker() {
+  const marker = document.getElementById('rec-marker');
+  const area = document.getElementById('table-area');
+  const tr = lastBestIndex == null ? null : document.querySelectorAll('#rows tr')[lastBestIndex];
+  if (!tr) { marker.classList.remove('show'); return; }
+  const trRect = tr.getBoundingClientRect();
+  const areaRect = area.getBoundingClientRect();
+  marker.style.top = (trRect.top - areaRect.top + trRect.height / 2) + 'px';
+  marker.classList.add('show');
+}
+window.addEventListener('resize', positionRecMarker);
+
+function setField(i, field, value) {
+  if (field === 'currentMax' || field === 'cost') value = Number(value) || 0;
+  rows[i][field] = value;
+  save();
+  render();
+}
+
+function resetAll() {
+  rows = DEFAULTS.map(d => ({ ...d }));
+  save();
+  render();
+}
+
+render();
+</script>
+
+<script>
+fetch('./CHANGELOG.md')
+  .then(r => r.text())
+  .then(md => {
+    const body = document.getElementById('changelog-body');
+    const entries = md.split(/^## /m).slice(1);
+    body.innerHTML = entries.map(entry => {
+      const lines = entry.trim().split('\n');
+      const header = lines[0].match(/^(v[\d.]+)\s*[—-]\s*(.+)$/);
+      if (!header) return '';
+      const items = lines.slice(1).filter(l => l.trim().startsWith('-'))
+        .map(l => `<li>${l.replace(/^-\s*/, '')}</li>`).join('');
+      return `<div class="cl-entry">
+  <div class="cl-header">
+    <span class="cl-version">${header[1]}</span>
+    <span class="cl-date">${header[2].trim()}</span>
+  </div>
+  <ul>${items}</ul>
+</div>`;
+    }).join('');
+  });
+</script>
+
+</body>
+</html>
